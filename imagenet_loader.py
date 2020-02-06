@@ -76,7 +76,7 @@ class Loader(object):
         imagenet_augmentors = fbresnet_augmentor(mode == 'train')
 
         # load the lmdb if we can find it
-        base_dir = '.'
+        base_dir = '/userhome/cs/u3003679/'
         lmdb_loc = os.path.join(base_dir, 'ILSVRC-{}.lmdb'.format(mode))
         #lmdb_loc = os.path.join(os.environ['IMAGENET'], 'ILSVRC-%s.lmdb'%mode)
         ds = LMDBSerializer.load(lmdb_loc, shuffle=False)

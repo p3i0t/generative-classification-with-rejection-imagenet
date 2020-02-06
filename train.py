@@ -94,8 +94,8 @@ if __name__ == '__main__':
     hps.device = torch.device("cuda" if use_cuda else "cpu")
 
     # Models
-    print('Base classifier name: {}'.format(hps.classifier_name))
-    classifier = get_model(model_name=hps.classifier_name).to(hps.device)
+    print('Base classifier name: {}'.format(hps.base_classifier))
+    classifier = get_model(model_name=hps.base_classifier).to(hps.device)
 
     sdim = SDIM(disc_classifier=classifier,
                 rep_size=hps.rep_size,
@@ -133,7 +133,8 @@ if __name__ == '__main__':
         top1 = AverageMeter('Acc@1')
         top5 = AverageMeter('Acc@5')
 
-        for x, y in tqdm(train_loader, total=len(train_loader)):
+        #for x, y in tqdm(train_loader, total=len(train_loader)):
+        for x, y in train_loader:
             # backward
             optimizer.zero_grad()
 
