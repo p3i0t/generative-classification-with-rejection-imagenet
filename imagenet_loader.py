@@ -61,17 +61,12 @@ class Loader(object):
             loading. 0 means that the data will be loaded in the main process
             (default: 0)
         cache (int, optional): cache size to use when loading data,
-        drop_last (bool, optional): set to ``True`` to drop the last incomplete batch,
-            if the dataset size is not divisible by the batch size. If ``False`` and
-            the size of dataset is not divisible by the batch size, then the last batch
-            will be smaller. (default: False)
         # cuda (bool, optional): set to ``True`` and the PyTorch tensors will get preloaded
         #     to the GPU for you (necessary because this lets us to uint8 conversion on the
         #     GPU, which is faster).
     """
 
-    def __init__(self, mode, batch_size=256, shuffle=False, num_workers=25, cache=50000,
-            drop_last=False, device='cuda'):
+    def __init__(self, mode, batch_size=256, shuffle=False, num_workers=25, cache=50000, device='cuda'):
         # enumerate standard imagenet augmentors
         imagenet_augmentors = fbresnet_augmentor(mode == 'train')
 
@@ -79,7 +74,7 @@ class Loader(object):
         base_dir = '/userhome/cs/u3003679/'
         lmdb_loc = os.path.join(base_dir, 'ILSVRC-{}.lmdb'.format(mode))
         #lmdb_loc = os.path.join(os.environ['IMAGENET'], 'ILSVRC-%s.lmdb'%mode)
-        ds = LMDBSerializer.load(lmdb_loc, shuffle=False)
+        ds = LMDBSerializer.load(lmdb_loc, shuffle=shuffle
         ds = LocallyShuffleData(ds, cache)
 
         # ds = td.LMDBDataPoint(ds)
@@ -90,6 +85,7 @@ class Loader(object):
             for aug in imagenet_augmentors:
                 x = aug.augment(x)
             return x, label
+
         ds = MultiProcessMapDataZMQ(ds, num_proc=8, map_func=f)
         # ds = MapDataComponent(ds, lambda x: cv2.imdecode(x, cv2.IMREAD_COLOR), 0)
         # ds = AugmentImageComponent(ds, imagenet_augmentors)

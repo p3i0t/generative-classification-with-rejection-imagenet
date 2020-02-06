@@ -1,0 +1,28 @@
+hydra:
+  job_logging:
+#    formatters:
+#      simple:
+#        format: '[]'
+    root:
+      handlers: [file]  # logging to file only.
+
+# model parameters
+n_classes: 1000
+mi_units: 512
+rep_size: 512
+margin: 512
+base_classifier: resnet18
+
+# training parameters
+n_batch_train: 256
+n_batch_test: 500
+optimizer: adam
+lr: 0.001
+epochs: 100
+seed: 1234
+n_gpu: 2
+
+# working directories
+log_dir: logs
+data_dir: data
+
