@@ -52,11 +52,11 @@ def train(hps: DictConfig) -> None:
 
     logger = logging.getLogger(__name__)
 
-    use_cuda = torch.cuda.is_available()
+    cuda_available = torch.cuda.is_available()
 
     torch.manual_seed(hps.seed)
 
-    hps.device = torch.device("cuda" if use_cuda else "cpu")
+    device = "cuda" if cuda_available and hps.device == 'cuda' else "cpu"
 
     # Models
     print('Base classifier name: {}'.format(hps.base_classifier))
@@ -68,10 +68,10 @@ def train(hps: DictConfig) -> None:
                 n_classes=hps.n_classes,
                 margin=hps.margin).to(hps.device)
 
-    train_loader = Loader('train', batch_size=hps.n_batch_train, device=hps.device)
-    test_loader = Loader('val', batch_size=hps.n_batch_test, device=hps.device)
+    train_loader = Loader('train', batch_size=hps.n_batch_train, device=device)
+    test_loader = Loader('val', batch_size=hps.n_batch_test, device=device)
 
-    if use_cuda and hps.n_gpu > 1:
+    if cuda_available and hps.n_gpu > 1:
         sdim = torch.nn.DataParallel(sdim, device_ids=list(range(hps.n_gpu)))
 
     optimizer = Adam(filter(lambda param: param.requires_grad is True, sdim.parameters()), lr=hps.lr)
@@ -101,7 +101,7 @@ def train(hps: DictConfig) -> None:
             # backward
             optimizer.zero_grad()
 
-            if use_cuda and hps.n_gpu > 1:
+            if cuda_available and hps.n_gpu > 1:
                 f_forward = sdim.module.eval_losses
             else:
                 f_forward = sdim.eval_losses
@@ -156,7 +156,7 @@ def train(hps: DictConfig) -> None:
             loss_optimal = train_loss
             model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.classifier_name, hps.mi_units, hps.rep_size)
 
-            if use_cuda and hps.n_gpu > 1:
+            if cuda_available and hps.n_gpu > 1:
                 state = sdim.module.state_dict()
             else:
                 state = sdim.state_dict()
