@@ -148,7 +148,7 @@ def train(hps: DictConfig) -> None:
 
     loss_optimal = 1e5
     for epoch in range(1, hps.epochs + 1):
-        print('===> Epoch: {}'.format(epoch))
+        logger.info('===> Epoch: {}'.format(epoch))
         train_loss, train_acc_top1, train_acc_top5 = train_epoch()
         test_acc_top1, test_acc_top5 = inference()
 

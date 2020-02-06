@@ -172,7 +172,7 @@ class SDIM(torch.nn.Module):
         :return: logits.
         """
         with torch.no_grad():
-            logits = self.disc_classifier(x.half()).float()
+            logits = self.disc_classifier(x)
         rep = self.feature_transformer(logits)
         log_lik = self.class_conditional(rep)
         return log_lik
