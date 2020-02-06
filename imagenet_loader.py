@@ -74,7 +74,7 @@ class Loader(object):
         base_dir = '/userhome/cs/u3003679/'
         lmdb_loc = os.path.join(base_dir, 'ILSVRC-{}.lmdb'.format(mode))
         #lmdb_loc = os.path.join(os.environ['IMAGENET'], 'ILSVRC-%s.lmdb'%mode)
-        ds = LMDBSerializer.load(lmdb_loc, shuffle=shuffle
+        ds = LMDBSerializer.load(lmdb_loc, shuffle=shuffle)
         ds = LocallyShuffleData(ds, cache)
 
         # ds = td.LMDBDataPoint(ds)
