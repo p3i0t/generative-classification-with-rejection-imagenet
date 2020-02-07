@@ -117,6 +117,7 @@ def train(hps: DictConfig) -> None:
             logger.info('Train loss: {:.4f}, mi: {:.4f}, nll: {:.4f}, ll_margin: {:.4f}'.format(
                 losses.avg, MIs.avg, nlls.avg, margins.avg
             ))
+            logger.info('Train Acc@1: {:.3f}, Acc@5: {:.3f}'.format(top1.avg, top5.avg))
 
             if losses.avg < loss_optimal:
                 loss_optimal = losses.avg
