@@ -69,7 +69,6 @@ def train(hps: DictConfig) -> None:
                 margin=hps.margin).to(hps.device)
 
     train_loader = Loader('train', batch_size=hps.n_batch_train, device=device)
-    test_loader = Loader('val', batch_size=hps.n_batch_test, device=device)
 
     if cuda_available and hps.n_gpu > 1:
         sdim = torch.nn.DataParallel(sdim, device_ids=list(range(hps.n_gpu)))
@@ -84,90 +83,62 @@ def train(hps: DictConfig) -> None:
     if not os.path.exists(logdir):
         os.mkdir(logdir)
 
-    def train_epoch():
-        """
-        One epoch training.
-        """
-        sdim.train()
-
-        losses = AverageMeter('Loss')
-        MIs = AverageMeter('MI')
-        nlls = AverageMeter('NLL')
-        margins = AverageMeter('Margin')
-        top1 = AverageMeter('Acc@1')
-        top5 = AverageMeter('Acc@5')
-
-        for x, y in train_loader:
-            # backward
-            optimizer.zero_grad()
-
-            if cuda_available and hps.n_gpu > 1:
-                f_forward = sdim.module.eval_losses
-            else:
-                f_forward = sdim.eval_losses
-
-            loss, mi_loss, nll_loss, ll_margin, log_lik = f_forward(x, y)
-            loss.backward()
-            optimizer.step()
-
-            acc1, acc5 = accuracy(log_lik, y, topk=(1, 5))
-            losses.update(loss.item(), x.size(0))
-            top1.update(acc1, x.size(0))
-            top5.update(acc5, x.size(0))
-
-            MIs.update(mi_loss.item(), x.size(0))
-            nlls.update(nll_loss.item(), x.size(0))
-            margins.update(ll_margin.item(), x.size(0))
-
-        logger.info('Train loss: {:.4f}, mi: {:.4f}, nll: {:.4f}, ll_margin: {:.4f}'.format(
-            losses.avg, MIs.avg, nlls.avg, margins.avg
-        ))
-        logger.info('Train Acc@1: {:.3f}, Acc@5: {:.3f}'.format(top1.avg, top5.avg))
-
-        return losses.avg, top1.avg, top5.avg
-
-    def inference():
-        """
-        One epoch testing.
-        """
-        sdim.eval()
-
-        top1 = AverageMeter('Acc@1')
-        top5 = AverageMeter('Acc@5')
-
-        with torch.no_grad():
-            for x, y in test_loader:
-                # eval logits
-                log_lik = sdim(x)
-                acc1, acc5 = accuracy(log_lik, y, topk=(1, 5))
-                top1.update(acc1, x.size(0))
-                top5.update(acc5, x.size(0))
-
-        logger.info('Test Acc@1: {:.3f}, Acc@5: {:.3f}'.format(top1.avg, top5.avg))
-        return top1.avg, top5.avg
-
     loss_optimal = 1e5
-    for epoch in range(1, hps.epochs + 1):
-        logger.info('===> Epoch: {}'.format(epoch))
-        train_loss, train_acc_top1, train_acc_top5 = train_epoch()
-        test_acc_top1, test_acc_top5 = inference()
+    n_iters = 0
 
-        if train_loss < loss_optimal:
-            loss_optimal = train_loss
-            model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.classifier_name, hps.mi_units, hps.rep_size)
+    losses = AverageMeter('Loss')
+    MIs = AverageMeter('MI')
+    nlls = AverageMeter('NLL')
+    margins = AverageMeter('Margin')
+    top1 = AverageMeter('Acc@1')
+    top5 = AverageMeter('Acc@5')
 
-            if cuda_available and hps.n_gpu > 1:
-                state = sdim.module.state_dict()
-            else:
-                state = sdim.state_dict()
+    for x, y in train_loader:
+        n_iters += 1
+        if n_iters == hps.training_iters:
+            break
 
-            check_point = {'model_state': state,
-                           'train_acc_top1': train_acc_top1,
-                           'train_acc_top5': train_acc_top5,
-                           'test_acc_top1': test_acc_top1,
-                           'test_acc_top5': test_acc_top5}
+        # backward
+        optimizer.zero_grad()
+        loss, mi_loss, nll_loss, ll_margin, log_lik = sdim(x, y)
+        loss.backward()
+        optimizer.step()
 
-            torch.save(check_point, os.path.join(hps.log_dir, model_path))
+        acc1, acc5 = accuracy(log_lik, y, topk=(1, 5))
+        losses.update(loss.item(), x.size(0))
+        top1.update(acc1, x.size(0))
+        top5.update(acc5, x.size(0))
+
+        MIs.update(mi_loss.item(), x.size(0))
+        nlls.update(nll_loss.item(), x.size(0))
+        margins.update(ll_margin.item(), x.size(0))
+
+        if n_iters % hps.log_interval == hps.log_interval - 1:
+            logger.info('Train loss: {:.4f}, mi: {:.4f}, nll: {:.4f}, ll_margin: {:.4f}'.format(
+                losses.avg, MIs.avg, nlls.avg, margins.avg
+            ))
+
+            if losses.avg < loss_optimal:
+                loss_optimal = losses.avg
+                model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.classifier_name, hps.mi_units, hps.rep_size)
+
+                if cuda_available and hps.n_gpu > 1:
+                    state = sdim.module.state_dict()
+                else:
+                    state = sdim.state_dict()
+
+                check_point = {'model_state': state,
+                               'train_acc_top1': top1.avg,
+                               'train_acc_top5': top5.avg}
+
+                torch.save(check_point, os.path.join(hps.log_dir, model_path))
+
+            losses.reset()
+            MIs.reset()
+            nlls.reset()
+            margins.reset()
+            top1.reset()
+            top5.reset()
 
 
 if __name__ == '__main__':

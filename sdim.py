@@ -125,7 +125,7 @@ class SDIM(torch.nn.Module):
         G = G.view(N, local_units, -1)
         return L, G
 
-    def eval_losses(self, x, y, measure='JSD', mode='fd'):
+    def forward(self, x, y, measure='JSD', mode='fd'):
         """
         Evaluate the losses in SDIM.
         :param x:
@@ -165,7 +165,7 @@ class SDIM(torch.nn.Module):
         loss = mi_loss + nll_loss + ll_margin
         return loss, mi_loss, nll_loss, ll_margin, log_lik
 
-    def forward(self, x):
+    def infer(self, x):
         """
         Evaluate the class (Gaussian) conditionals as logits of generative classifier.
         :param x: input tensor.
