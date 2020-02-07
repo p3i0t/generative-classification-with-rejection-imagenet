@@ -101,7 +101,7 @@ def train(hps: DictConfig) -> None:
         # backward
         optimizer.zero_grad()
         loss, mi_loss, nll_loss, ll_margin, log_lik = sdim(x, y)
-        loss.backward()
+        loss.mean().backward()
         optimizer.step()
 
         acc1, acc5 = accuracy(log_lik, y, topk=(1, 5))
@@ -120,7 +120,7 @@ def train(hps: DictConfig) -> None:
 
             if losses.avg < loss_optimal:
                 loss_optimal = losses.avg
-                model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.classifier_name, hps.mi_units, hps.rep_size)
+                model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.base_classifier, hps.mi_units, hps.rep_size)
 
                 if cuda_available and hps.n_gpu > 1:
                     state = sdim.module.state_dict()
