@@ -47,7 +47,6 @@ def get_model(model_name='resnet18'):
         m = resnet_wrapper(models.resnext34(pretrained=True))
     elif model_name == 'resnet50':
         m = resnet_wrapper(models.resnext50(pretrained=True))
-    print('Model name: {}, # parameters: {}'.format(model_name, cal_parameters(m)))
     return m
 
 
@@ -83,8 +82,8 @@ def train(hps: DictConfig) -> None:
     device = "cuda" if cuda_available and hps.device == 'cuda' else "cpu"
 
     # Models
-    logger.info('Base classifier name: {}'.format(hps.base_classifier))
     classifier = get_model(model_name=hps.base_classifier).to(hps.device)
+    logger.info('Base classifier name: {}, # parameters: {}'.format(hps.base_classifier, cal_parameters(classifier)))
 
     local_channel = hps.get(hps.base_classifier).last_conv_channel
     sdim = SDIM(disc_classifier=classifier,
