@@ -150,7 +150,7 @@ def train(hps: DictConfig) -> None:
 
             if losses.avg < loss_optimal:
                 loss_optimal = losses.avg
-                model_path = 'SDIM_{}_MI{}_rep{}.pth'.format(hps.base_classifier, hps.mi_units, hps.rep_size)
+                model_path = 'SDIM_{}.pth'.format(hps.base_classifier)
 
                 if cuda_available and hps.n_gpu > 1:
                     state = sdim.module.state_dict()
