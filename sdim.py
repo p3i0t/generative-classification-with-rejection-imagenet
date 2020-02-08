@@ -85,7 +85,6 @@ class SDIM(torch.nn.Module):
     def __init__(self, disc_classifier, n_classes=1000, mi_units=512, margin=5., local_channel=512):
         super().__init__()
         self.disc_classifier = disc_classifier
-        self.disc_classifier.requires_grad_(requires_grad=False)  # shut down grad on pre-trained classifier.
 
         self.n_classes = n_classes
         self.rep_size = n_classes  # global feature size
