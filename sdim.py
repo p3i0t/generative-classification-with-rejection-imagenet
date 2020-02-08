@@ -96,7 +96,7 @@ class SDIM(torch.nn.Module):
         self.local_MInet = MI1x1ConvNet(self.local_channel, self.mi_units)
         self.global_MInet = MI1x1ConvNet(self.n_classes, self.mi_units)
 
-        self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.rep_size)
+        self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.n_classes)
 
     def desc(self):
         """
@@ -137,12 +137,12 @@ class SDIM(torch.nn.Module):
         :return: losses.
         """
         with torch.no_grad():
-            logits = self.disc_classifier(x)
+            local_features, rep = self.disc_classifier(x)
 
-        rep = self.feature_transformer(logits)
+        # rep = self.feature_transformer(logits)
 
         # compute mutual infomation loss
-        L, G = self._T(logits, rep)
+        L, G = self._T(local_features, rep)
         mi_loss = compute_dim_loss(L, G, measure, mode)
 
         # evaluate log-likelihoods as logits
@@ -150,7 +150,7 @@ class SDIM(torch.nn.Module):
         ll = log_lik / self.rep_size
 
         # mask of positive class conditional likelihood
-        pos_mask = torch.zeros(logits.size(0), self.n_classes).to(logits.device).scatter(1, y.unsqueeze(dim=1), 1.)
+        pos_mask = torch.zeros(rep.size(0), self.n_classes).to(rep.device).scatter(1, y.unsqueeze(dim=1), 1.)
 
         # compute nll loss
         nll_loss = -(ll * pos_mask).sum(dim=1).mean()
@@ -174,8 +174,8 @@ class SDIM(torch.nn.Module):
         :return: logits.
         """
         with torch.no_grad():
-            logits = self.disc_classifier(x)
-        rep = self.feature_transformer(logits)
+            local_features, rep = self.disc_classifier(x)
+        # rep = self.feature_transformer(logits)
         log_lik = self.class_conditional(rep)
         return log_lik
 
