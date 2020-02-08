@@ -88,7 +88,8 @@ class SDIM(torch.nn.Module):
         self.disc_classifier.requires_grad_(requires_grad=False)  # shut down grad on pre-trained classifier.
 
         self.n_classes = n_classes
-        self.local_channel = local_channel
+        self.rep_size = n_classes  # global feature size
+        self.local_channel = local_channel  # channel of local feature maps
         self.mi_units = mi_units
         self.margin = margin
 
@@ -96,7 +97,7 @@ class SDIM(torch.nn.Module):
         self.local_MInet = MI1x1ConvNet(self.local_channel, self.mi_units)
         self.global_MInet = MI1x1ConvNet(self.n_classes, self.mi_units)
 
-        self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.n_classes)
+        self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.rep_size)
 
     def desc(self):
         """
@@ -139,8 +140,6 @@ class SDIM(torch.nn.Module):
         with torch.no_grad():
             local_features, rep = self.disc_classifier(x)
 
-        # rep = self.feature_transformer(logits)
-
         # compute mutual infomation loss
         L, G = self._T(local_features, rep)
         mi_loss = compute_dim_loss(L, G, measure, mode)
@@ -175,7 +174,6 @@ class SDIM(torch.nn.Module):
         """
         with torch.no_grad():
             local_features, rep = self.disc_classifier(x)
-        # rep = self.feature_transformer(logits)
         log_lik = self.class_conditional(rep)
         return log_lik
 
