@@ -16,13 +16,37 @@ from imagenet_loader import Loader
 from utils import cal_parameters, AverageMeter
 
 
+class resnet_wrapper(torch.nn.Module):
+    def __init__(self, model: torch.nn.Module):
+        super().__init__()
+
+        layers = list(model.children())
+        self.conv_layers = torch.nn.Sequential(*layers[:-2])
+        self.conv_layers.requires_grad_(requires_grad=False)
+        self.avg_pool = layers[-2]
+        self.lin = layers[-1]
+
+    def forward(self, x):
+        """
+        Forward and extract the last conv layer output and final output.
+        :param x:
+        :return:
+        """
+        conv_out = self.conv_layers(x)
+
+        out = self.avg_pool(conv_out).squeeze(dim=-1).squeeze(dim=-1)
+        out = self.lin(out)
+
+        return conv_out, out
+
+
 def get_model(model_name='resnet18'):
     if model_name == 'resnet18':
-        m = models.resnet18(pretrained=True)
+        m = resnet_wrapper(models.resnet18(pretrained=True))
     elif model_name == 'resnet34':
-        m = models.resnext34(pretrained=True)
+        m = resnet_wrapper(models.resnext34(pretrained=True))
     elif model_name == 'resnet50':
-        m = models.resnext50(pretrained=True)
+        m = resnet_wrapper(models.resnext50(pretrained=True))
     print('Model name: {}, # parameters: {}'.format(model_name, cal_parameters(m)))
     return m
 
@@ -59,14 +83,19 @@ def train(hps: DictConfig) -> None:
     device = "cuda" if cuda_available and hps.device == 'cuda' else "cpu"
 
     # Models
-    print('Base classifier name: {}'.format(hps.base_classifier))
+    logger.info('Base classifier name: {}'.format(hps.base_classifier))
     classifier = get_model(model_name=hps.base_classifier).to(hps.device)
 
+    local_channel = hps.get(hps.base_classifier).last_conv_channel
     sdim = SDIM(disc_classifier=classifier,
-                rep_size=hps.rep_size,
                 mi_units=hps.mi_units,
                 n_classes=hps.n_classes,
-                margin=hps.margin).to(hps.device)
+                margin=hps.margin,
+                local_channel=local_channel).to(hps.device)
+
+    # logging the SDIM desc.
+    for desc in sdim.desc():
+        logger.info(desc)
 
     train_loader = Loader('train', batch_size=hps.n_batch_train, device=device)
 

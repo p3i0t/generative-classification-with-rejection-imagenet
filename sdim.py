@@ -66,55 +66,57 @@ def compute_dim_loss(l_enc, m_enc, measure, mode):
     return loss
 
 
-class FeatureTransformer(nn.Module):
-    def __init__(self, in_size, out_size):
-        super().__init__()
-        self.f = nn.Sequential(nn.Linear(in_size, 2 * out_size),
-                               nn.BatchNorm1d(2 * out_size),
-                               nn.ReLU(),
-                               # nn.Linear(2 * in_size, 2 * in_size),
-                               # nn.BatchNorm1d(2 * in_size),
-                               # nn.ReLU(),
-                               nn.Linear(2 * out_size, out_size))
-
-    def forward(self, x):
-        return self.f(x)
+# class FeatureTransformer(nn.Module):
+#     def __init__(self, in_size, out_size):
+#         super().__init__()
+#         self.f = nn.Sequential(nn.Linear(in_size, 2 * out_size),
+#                                nn.BatchNorm1d(2 * out_size),
+#                                nn.ReLU(),
+#                                # nn.Linear(2 * in_size, 2 * in_size),
+#                                # nn.BatchNorm1d(2 * in_size),
+#                                # nn.ReLU(),
+#                                nn.Linear(2 * out_size, out_size))
+#
+#     def forward(self, x):
+#         return self.f(x)
 
 
 class SDIM(torch.nn.Module):
-    def __init__(self, disc_classifier, rep_size=256, n_classes=1000, mi_units=512, margin=5.):
+    def __init__(self, disc_classifier, n_classes=1000, mi_units=512, margin=5., local_channel=512):
         super().__init__()
         self.disc_classifier = disc_classifier
         self.disc_classifier.requires_grad_(requires_grad=False)  # shut down grad on pre-trained classifier.
 
-        self.rep_size = rep_size
         self.n_classes = n_classes
+        self.local_channel = local_channel
         self.mi_units = mi_units
         self.margin = margin
 
-        self.feature_transformer = FeatureTransformer(self.n_classes, self.rep_size)
-
         # 1x1 conv performed on only channel dimension
-        self.local_MInet = MI1x1ConvNet(self.n_classes, self.mi_units)
-        self.global_MInet = MI1x1ConvNet(self.rep_size, self.mi_units)
+        self.local_MInet = MI1x1ConvNet(self.local_channel, self.mi_units)
+        self.global_MInet = MI1x1ConvNet(self.n_classes, self.mi_units)
 
         self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.rep_size)
 
     def desc(self):
         """
         Description of this model.
-        :return:
+        :return: tuple of descriptions of SDIM components.
         """
-        print('==>  # Model parameters.')
-        print('==>  # FeatureTransformer parameters: {}.'.format(cal_parameters(self.feature_transformer)))
-        print('==>  # T parameters: {}.'.format(cal_parameters(self.local_MInet) + cal_parameters(self.global_MInet)))
-        print('==>  # class conditional parameters: {}.'.format(cal_parameters(self.class_conditional)))
+        n_fixed = cal_parameters(self.disc_classifier, filter_func=lambda x: not x.requires_grad)
+        n_trainable = cal_parameters(self.disc_classifier, filter_func=lambda x: x.requires_grad)
+        n_T = cal_parameters(self.local_MInet) + cal_parameters(self.global_MInet)
+        n_C = cal_parameters(self.class_conditional)
+
+        base_desc = 'Base classifier, # fixed parameters: {}, # trainable parameters: {}'.format(n_fixed, n_trainable)
+        T_desc = 'MI evaluation network, #parameters: {}.'.format(n_T)
+        class_con_desc = 'Class conditional embedding layer, #parameters: {}.'.format(n_C)
+        return base_desc, T_desc, class_con_desc
 
     def _T(self, L, G):
         # All globals are reshaped as 1x1 feature maps.
         global_size = G.size()[1:]
         if len(global_size) == 1:
-            L = L[:, :, None, None]
             G = G[:, :, None, None]
 
         L = self.local_MInet(L)

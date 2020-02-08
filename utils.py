@@ -119,16 +119,18 @@ def get_dataset(data_name='mnist', data_dir='data', train=True, label_id=None, c
     return dataset
 
 
-def cal_parameters(model):
+def cal_parameters(model, filter_func=None):
     """
     Calculate the number of parameters of a Pytorch model.
     :param model: torch.nn.Module
+    :param filter_func: function to filter parameters to count, input is a parameter tensor, output is bool.
     :return: int, number of parameters.
     """
-    cnt = 0
-    for para in model.parameters():
-        cnt += para.numel()
-    return cnt
+    if filter_func is not None:
+        return sum([para.numel() for para in model.parameters() if filter_func(para)])
+    else:
+        return sum([para.numel() for para in model.parameters()])
+
 
 #
 # def clean_state_dict(state_dict):
