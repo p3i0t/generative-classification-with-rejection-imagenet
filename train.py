@@ -57,13 +57,13 @@ class ResnetWrapper(torch.nn.Module):
         return conv_out, out
 
 
-def get_model(model_name='resnet18'):
+def get_model(model_name='resnet18', in_size=512, out_size=256):
     if model_name == 'resnet18':
-        m = ResnetWrapper(models.resnet18(pretrained=True))
+        m = ResnetWrapper(models.resnet18(pretrained=True), in_size, out_size)
     elif model_name == 'resnet34':
-        m = ResnetWrapper(models.resnext34(pretrained=True))
+        m = ResnetWrapper(models.resnext34(pretrained=True), in_size, out_size)
     elif model_name == 'resnet50':
-        m = ResnetWrapper(models.resnext50(pretrained=True))
+        m = ResnetWrapper(models.resnext50(pretrained=True), in_size, out_size)
     return m
 
 
@@ -99,14 +99,15 @@ def train(hps: DictConfig) -> None:
     device = "cuda" if cuda_available and hps.device == 'cuda' else "cpu"
 
     # Models
-    classifier = get_model(model_name=hps.base_classifier).to(hps.device)
+    local_channel = hps.get(hps.base_classifier).last_conv_channel
+    classifier = get_model(model_name=hps.base_classifier, in_size=local_channel, out_size=hps.rep_size).to(hps.device)
     logger.info('Base classifier name: {}, # parameters: {}'.format(hps.base_classifier, cal_parameters(classifier)))
 
-    local_channel = hps.get(hps.base_classifier).last_conv_channel
     sdim = SDIM(disc_classifier=classifier,
                 mi_units=hps.mi_units,
                 n_classes=hps.n_classes,
                 margin=hps.margin,
+                rep_size=hps.rep_size,
                 local_channel=local_channel).to(hps.device)
 
     # logging the SDIM desc.

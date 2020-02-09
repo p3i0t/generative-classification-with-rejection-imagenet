@@ -82,19 +82,19 @@ def compute_dim_loss(l_enc, m_enc, measure, mode):
 
 
 class SDIM(torch.nn.Module):
-    def __init__(self, disc_classifier, n_classes=1000, mi_units=512, margin=5., local_channel=512):
+    def __init__(self, disc_classifier, rep_size=512, n_classes=1000, mi_units=512, margin=5., local_channel=512):
         super().__init__()
         self.disc_classifier = disc_classifier
 
         self.n_classes = n_classes
-        self.rep_size = n_classes  # global feature size
+        self.rep_size = rep_size # global feature size
         self.local_channel = local_channel  # channel of local feature maps
         self.mi_units = mi_units
         self.margin = margin
 
         # 1x1 conv performed on only channel dimension
         self.local_MInet = MI1x1ConvNet(self.local_channel, self.mi_units)
-        self.global_MInet = MI1x1ConvNet(self.n_classes, self.mi_units)
+        self.global_MInet = MI1x1ConvNet(self.rep_size, self.mi_units)
 
         self.class_conditional = ClassConditionalGaussianMixture(self.n_classes, self.rep_size)
 

@@ -10,6 +10,7 @@ hydra:
 n_classes: 1000
 mi_units: 512
 margin: 3
+rep_size: 512
 base_classifier: resnet18
 
 resnet18:
