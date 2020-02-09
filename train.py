@@ -26,7 +26,7 @@ class LinearResBlock(torch.nn.Module):
                                                    nn.ReLU(),
                                                    nn.Linear(in_size, out_size))
 
-        self.block_shortcut = nn.Linear(in_size, out_size)
+        self.linear_shortcut = nn.Linear(in_size, out_size)
         self.block_ln = nn.LayerNorm(out_size)
 
     def forward(self, x):
