@@ -8,6 +8,7 @@ import hydra
 from omegaconf import DictConfig
 
 import torch
+import torch.nn as nn
 import torchvision.models as models
 from torch.optim import Adam
 
@@ -16,15 +17,31 @@ from imagenet_loader import Loader
 from utils import cal_parameters, AverageMeter
 
 
-class resnet_wrapper(torch.nn.Module):
-    def __init__(self, model: torch.nn.Module):
+class LinearResBlock(torch.nn.Module):
+    def __init__(self, in_size, out_size):
+        super().__init__()
+
+        self.block_nonlinear = nn.Sequential(nn.Linear(in_size, in_size),
+                                                   nn.BatchNorm1d(in_size),
+                                                   nn.ReLU(),
+                                                   nn.Linear(in_size, out_size))
+
+        self.block_shortcut = nn.Linear(in_size, out_size)
+        self.block_ln = nn.LayerNorm(out_size)
+
+    def forward(self, x):
+        return self.block_ln(self.block_nonlinear(x) + self.linear_shortcut(x))
+
+
+class ResnetWrapper(torch.nn.Module):
+    def __init__(self, model: nn.Module, in_size, out_size):
         super().__init__()
 
         layers = list(model.children())
         self.conv_layers = torch.nn.Sequential(*layers[:-2])
         self.conv_layers.requires_grad_(requires_grad=False)
         self.avg_pool = layers[-2]
-        self.lin = layers[-1]
+        self.lin_res = LinearResBlock(in_size, out_size)
 
     def forward(self, x):
         """
@@ -35,18 +52,18 @@ class resnet_wrapper(torch.nn.Module):
         conv_out = self.conv_layers(x)
 
         out = self.avg_pool(conv_out).squeeze(dim=-1).squeeze(dim=-1)
-        out = self.lin(out)
+        out = self.lin_res(out)
 
         return conv_out, out
 
 
 def get_model(model_name='resnet18'):
     if model_name == 'resnet18':
-        m = resnet_wrapper(models.resnet18(pretrained=True))
+        m = ResnetWrapper(models.resnet18(pretrained=True))
     elif model_name == 'resnet34':
-        m = resnet_wrapper(models.resnext34(pretrained=True))
+        m = ResnetWrapper(models.resnext34(pretrained=True))
     elif model_name == 'resnet50':
-        m = resnet_wrapper(models.resnext50(pretrained=True))
+        m = ResnetWrapper(models.resnext50(pretrained=True))
     return m
 
 
