@@ -4,7 +4,7 @@ hydra:
 #      simple:
 #        format: '[]'
     root:
-      handlers: [file]  # logging to file only.
+      handlers: [file, console]  # logging to file only.
 
 # model parameters
 n_classes: 1000
