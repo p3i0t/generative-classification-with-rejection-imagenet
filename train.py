@@ -38,8 +38,9 @@ class ResnetWrapper(torch.nn.Module):
         super().__init__()
 
         layers = list(model.children())
-        self.conv_layers = torch.nn.Sequential(*layers[:-2])
-        self.conv_layers.requires_grad_(requires_grad=False)
+        self.conv_layers1 = nn.Sequential(*layers[:-3])
+        self.conv_layers2 = layers[-3]
+        #self.conv_layers.requires_grad_(requires_grad=False)
         self.avg_pool = layers[-2]
         self.lin_res = LinearResBlock(in_size, out_size)
 
@@ -49,9 +50,10 @@ class ResnetWrapper(torch.nn.Module):
         :param x:
         :return:
         """
-        conv_out = self.conv_layers(x)
+        conv_out = self.conv_layers1(x)
 
-        out = self.avg_pool(conv_out).squeeze(dim=-1).squeeze(dim=-1)
+        out = self.conv_layers2(conv_out)
+        out = self.avg_pool(out).squeeze(dim=-1).squeeze(dim=-1)
         out = self.lin_res(out)
 
         return conv_out, out

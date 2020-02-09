@@ -38,7 +38,7 @@ class ResnetWrapper(torch.nn.Module):
 
         layers = list(model.children())
         self.conv_layers = torch.nn.Sequential(*layers[:-2])
-        self.conv_layers.requires_grad_(requires_grad=False)
+        #self.conv_layers.requires_grad_(requires_grad=False)
         self.avg_pool = layers[-2]
         self.lin_res = LinearResBlock(in_size, out_size)
 
@@ -84,7 +84,7 @@ def accuracy(output, target, topk=(1,)):
 
 
 @hydra.main(config_path='config.yaml')
-def inferece(hps: DictConfig) -> None:
+def inference(hps: DictConfig) -> None:
     # This enables a ctr-C without triggering errors
     import signal
 
@@ -145,6 +145,10 @@ def inferece(hps: DictConfig) -> None:
         top5.update(acc5, x.size(0))
 
     logger.info('Test Acc@1: {:.3f}, Acc@5: {:.3f}'.format(top1.avg, top5.avg))
+
+
+if __name__ == '__main__':
+    inference()
 
 
 

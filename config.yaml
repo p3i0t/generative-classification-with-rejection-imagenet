@@ -9,18 +9,18 @@ hydra:
 # model parameters
 n_classes: 1000
 mi_units: 512
-margin: 3
+margin: 0.5
 rep_size: 512
 base_classifier: resnet18
 
 resnet18:
-  last_conv_channel: 512
+  last_conv_channel: 256
 
 resnet34:
-  last_conv_channel: 512
+  last_conv_channel: 256
 
 resnet50:
-  last_conv_channel: 2048
+  last_conv_channel: 1024
 
 # training parameters
 n_batch_train: 256
@@ -28,7 +28,7 @@ n_batch_test: 500
 optimizer: adam
 lr: 0.001
 training_iters: 100000
-log_interval: 2000
+log_interval: 1000
 seed: 1234
 n_gpu: 1
 device: cuda
