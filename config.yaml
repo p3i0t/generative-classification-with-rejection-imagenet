@@ -14,13 +14,13 @@ rep_size: 512
 base_classifier: resnet18
 
 resnet18:
-  last_conv_channel: 256
+  last_conv_channel: 128
 
 resnet34:
-  last_conv_channel: 256
+  last_conv_channel: 128
 
 resnet50:
-  last_conv_channel: 1024
+  last_conv_channel: 512
 
 # training parameters
 n_batch_train: 256

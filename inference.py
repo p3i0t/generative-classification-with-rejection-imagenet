@@ -111,7 +111,9 @@ def inference(hps: DictConfig) -> None:
                 local_channel=local_channel).to(hps.device)
 
     model_path = 'SDIM_{}.pth'.format(hps.base_classifier)
-    sdim.load_state_dict(torch.load(model_path)['model_state'])
+    base_dir = '/userhome/cs/u3003679/generative-classification-with-rejection'
+    path = os.path.join(base_dir, model_path)
+    sdim.load_state_dict(torch.load(path)['model_state'])
 
     # logging the SDIM desc.
     for desc in sdim.desc():
